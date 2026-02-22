@@ -2,7 +2,10 @@ import { ToolExecutor } from '@/common/tool-handler';
 import type { ToolResult } from '@/common/tool-handler';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
-const PING_TIMEOUT_MS = 300;
+// 300ms was too aggressive for Chrome IPC round-trip latency on real-world pages.
+// Increased to 2000ms to accommodate slow tabs, heavy JS, and service worker restarts.
+const PING_TIMEOUT_MS = 2000;
+const PING_MAX_RETRIES = 2;
 
 /**
  * Base class for browser tool executors
@@ -10,6 +13,47 @@ const PING_TIMEOUT_MS = 300;
 export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   abstract name: string;
   abstract execute(args: any): Promise<ToolResult>;
+
+  /**
+   * Ping a tab to check if content script is already injected.
+   * Returns true if pong received, false if timed out or error.
+   * Uses exponential backoff for retries.
+   */
+  private async pingContentScript(tabId: number, frameId?: number, attempt = 0): Promise<boolean> {
+    const timeoutMs = PING_TIMEOUT_MS * Math.pow(1.5, attempt);
+    try {
+      const response = await Promise.race([
+        typeof frameId === 'number'
+          ? chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }, { frameId })
+          : chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
+            timeoutMs,
+          ),
+        ),
+      ]);
+
+      if (response && response.status === 'pong') {
+        console.log(`pong received for action '${this.name}' in tab ${tabId}. Script is active.`);
+        return true;
+      }
+      console.warn(`Unexpected ping response in tab ${tabId}:`, response);
+      return false;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (attempt < PING_MAX_RETRIES) {
+        const backoffMs = 100 * Math.pow(2, attempt);
+        console.warn(
+          `ping attempt ${attempt + 1}/${PING_MAX_RETRIES + 1} failed (${msg}), retrying in ${backoffMs}ms`,
+        );
+        await new Promise((r) => setTimeout(r, backoffMs));
+        return this.pingContentScript(tabId, frameId, attempt + 1);
+      }
+      console.error(`ping content script failed after ${PING_MAX_RETRIES + 1} attempts: ${msg}`);
+      return false;
+    }
+  }
 
   /**
    * Inject content script into tab
@@ -24,38 +68,10 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   ): Promise<void> {
     console.log(`Injecting ${files.join(', ')} into tab ${tabId}`);
 
-    // check if script is already injected
-    try {
-      const pingFrameId = frameIds?.[0];
-      const response = await Promise.race([
-        typeof pingFrameId === 'number'
-          ? chrome.tabs.sendMessage(
-              tabId,
-              { action: `${this.name}_ping` },
-              { frameId: pingFrameId },
-            )
-          : chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
-            PING_TIMEOUT_MS,
-          ),
-        ),
-      ]);
-
-      if (response && response.status === 'pong') {
-        console.log(
-          `pong received for action '${this.name}' in tab ${tabId}. Assuming script is active.`,
-        );
-        return;
-      } else {
-        console.warn(`Unexpected ping response in tab ${tabId}:`, response);
-      }
-    } catch (error) {
-      console.error(
-        `ping content script failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    // Check if script is already injected — bail early if pong received
+    const pingFrameId = frameIds?.[0];
+    const alreadyInjected = await this.pingContentScript(tabId, pingFrameId);
+    if (alreadyInjected) return;
 
     try {
       const target: { tabId: number; allFrames?: boolean; frameIds?: number[] } = { tabId };
