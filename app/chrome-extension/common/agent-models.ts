@@ -28,6 +28,18 @@ export type AgentCliType = 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm';
 
 export const CLAUDE_MODELS: ModelDefinition[] = [
   {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet 4.6',
+    description: 'Latest balanced model',
+    supportsImages: true,
+  },
+  {
+    id: 'claude-opus-4-6',
+    name: 'Claude Opus 4.6',
+    description: 'Most capable model',
+    supportsImages: true,
+  },
+  {
     id: 'claude-sonnet-4-5-20250929',
     name: 'Claude Sonnet 4.5',
     description: 'Balanced model with large context window',
@@ -36,7 +48,7 @@ export const CLAUDE_MODELS: ModelDefinition[] = [
   {
     id: 'claude-opus-4-5-20251101',
     name: 'Claude Opus 4.5',
-    description: 'Strongest reasoning model',
+    description: 'Strong reasoning model',
     supportsImages: true,
   },
   {
@@ -47,7 +59,7 @@ export const CLAUDE_MODELS: ModelDefinition[] = [
   },
 ];
 
-export const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
+export const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-6';
 
 // ============================================================
 // Codex Models
