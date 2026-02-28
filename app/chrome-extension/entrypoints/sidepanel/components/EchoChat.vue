@@ -48,7 +48,7 @@
         <input
           v-model="urlInput"
           class="echo-url-input"
-          placeholder="ws://localhost:3848"
+          placeholder="ws://localhost:3847"
           @keydown.enter="applyUrl"
         />
         <button class="echo-url-save" @click="applyUrl">Connect</button>
@@ -225,7 +225,7 @@ function resetTextareaHeight(): void {
 // ── URL input ─────────────────────────────────────────────────────────────────
 
 async function applyUrl(): Promise<void> {
-  const url = urlInput.value.trim() || 'ws://localhost:3848';
+  const url = urlInput.value.trim() || 'ws://localhost:3847';
   await saveDaemonUrl(url);
   reconnect();
 }
