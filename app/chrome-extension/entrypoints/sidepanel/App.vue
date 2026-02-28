@@ -302,7 +302,7 @@ import { useWorkflowsV3, type FlowLite } from './composables/useWorkflowsV3';
 const { theme: currentTheme, initTheme } = useAgentTheme();
 
 // Tab state - default to AgentChat
-const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat' | 'echo'>('agent-chat');
+const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat' | 'echo'>('echo');
 
 // Handle tab change and update URL for deep linking
 function handleTabChange(tab: 'workflows' | 'element-markers' | 'agent-chat' | 'echo') {
