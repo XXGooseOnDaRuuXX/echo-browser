@@ -42,8 +42,8 @@
     <!-- Disconnected banner -->
     <div v-if="connectionState !== 'connected'" class="echo-disconnected">
       <div class="echo-disconnected-icon">⚡</div>
-      <p class="echo-disconnected-title">Echo is not reachable</p>
-      <p class="echo-disconnected-sub"> Start the Stateful-Echo daemon to use this channel. </p>
+      <p class="echo-disconnected-title">Echo isn't running</p>
+      <p class="echo-disconnected-sub">Start the Echo daemon locally to begin a session.</p>
       <div class="echo-url-row">
         <input
           v-model="urlInput"
@@ -80,7 +80,7 @@
 
       <!-- Empty state -->
       <div v-if="messages.length === 0" class="echo-empty">
-        <p>Ask Echo anything — she knows this context.</p>
+        <p>Echo is listening. Ask anything — she sees this page.</p>
       </div>
     </div>
 
@@ -240,12 +240,22 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/*
+  Echo color system — warm dark, terra cotta accent
+  Background:   #100e0c  (warm black)
+  Surface:      #1c1816  (dark warm brown)
+  Border:       #2e2420  (subtle warm border)
+  Text:         #f0ebe5  (warm white)
+  Muted:        #8a7d75  (warm gray)
+  Accent:       #d97757  (terra cotta — matches app design system)
+*/
+
 .echo-chat {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0d1117;
-  color: #e6edf3;
+  background: #100e0c;
+  color: #f0ebe5;
   font-family:
     system-ui,
     -apple-system,
@@ -259,7 +269,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid #2e2420;
   flex-shrink: 0;
 }
 .echo-header-left {
@@ -274,6 +284,7 @@ onMounted(async () => {
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.01em;
+  color: #f0ebe5;
 }
 .echo-header-right {
   display: flex;
@@ -287,14 +298,15 @@ onMounted(async () => {
   display: inline-block;
 }
 .echo-status-connected {
-  background: #3fb950;
+  background: #c2853a;
+  box-shadow: 0 0 0 2px rgba(194, 133, 58, 0.2);
 }
 .echo-status-connecting {
-  background: #d29922;
+  background: #d4a843;
   animation: pulse 1.2s infinite;
 }
 .echo-status-error {
-  background: #f85149;
+  background: #c45454;
 }
 
 @keyframes pulse {
@@ -303,7 +315,7 @@ onMounted(async () => {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 
@@ -311,7 +323,7 @@ onMounted(async () => {
 .echo-clear-btn {
   background: none;
   border: none;
-  color: #8b949e;
+  color: #8a7d75;
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -320,8 +332,8 @@ onMounted(async () => {
 }
 .echo-reconnect-btn:hover,
 .echo-clear-btn:hover {
-  color: #e6edf3;
-  background: #21262d;
+  color: #f0ebe5;
+  background: #2e2420;
 }
 
 /* ── Disconnected ── */
@@ -338,18 +350,19 @@ onMounted(async () => {
 .echo-disconnected-icon {
   font-size: 32px;
   margin-bottom: 4px;
-  opacity: 0.4;
+  opacity: 0.35;
 }
 .echo-disconnected-title {
   font-weight: 600;
-  color: #e6edf3;
+  color: #f0ebe5;
   margin: 0;
 }
 .echo-disconnected-sub {
-  color: #8b949e;
+  color: #8a7d75;
   font-size: 12px;
   margin: 0 0 8px;
   max-width: 240px;
+  line-height: 1.5;
 }
 .echo-url-row {
   display: flex;
@@ -359,32 +372,34 @@ onMounted(async () => {
 }
 .echo-url-input {
   flex: 1;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: #1c1816;
+  border: 1px solid #3a2e28;
   border-radius: 6px;
-  color: #e6edf3;
+  color: #f0ebe5;
   padding: 6px 10px;
   font-size: 12px;
   outline: none;
+  transition: border-color 0.15s;
 }
 .echo-url-input:focus {
-  border-color: #388bfd;
+  border-color: #d97757;
 }
 .echo-url-save {
-  background: #238636;
-  border: 1px solid #2ea043;
+  background: #d97757;
+  border: 1px solid #c4664a;
   border-radius: 6px;
   color: #fff;
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
   cursor: pointer;
+  transition: background 0.15s;
 }
 .echo-url-save:hover {
-  background: #2ea043;
+  background: #c4664a;
 }
 .echo-error-text {
-  color: #f85149;
+  color: #c45454;
   font-size: 11px;
   margin: 4px 0 0;
 }
@@ -398,13 +413,13 @@ onMounted(async () => {
   flex-direction: column;
   gap: 8px;
   scrollbar-width: thin;
-  scrollbar-color: #30363d transparent;
+  scrollbar-color: #3a2e28 transparent;
 }
 .echo-timeline::-webkit-scrollbar {
   width: 4px;
 }
 .echo-timeline::-webkit-scrollbar-thumb {
-  background: #30363d;
+  background: #3a2e28;
   border-radius: 2px;
 }
 
@@ -426,14 +441,14 @@ onMounted(async () => {
   word-break: break-word;
 }
 .echo-msg-user .echo-msg-bubble {
-  background: #1f6feb;
-  color: #fff;
+  background: #7a3420;
+  color: #f5ddd3;
   border-bottom-right-radius: 4px;
 }
 .echo-msg-assistant .echo-msg-bubble {
-  background: #161b22;
-  color: #e6edf3;
-  border: 1px solid #21262d;
+  background: #1c1816;
+  color: #f0ebe5;
+  border: 1px solid #2e2420;
   border-bottom-left-radius: 4px;
 }
 .echo-msg-text {
@@ -443,7 +458,7 @@ onMounted(async () => {
   display: inline-block;
   width: 2px;
   height: 1em;
-  background: #e6edf3;
+  background: #d97757;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 0.8s steps(1) infinite;
@@ -469,7 +484,7 @@ onMounted(async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #8b949e;
+  background: #d97757;
   animation: thinking 1.2s ease-in-out infinite;
 }
 .echo-thinking-dot:nth-child(2) {
@@ -483,7 +498,7 @@ onMounted(async () => {
   80%,
   100% {
     transform: scale(1);
-    opacity: 0.6;
+    opacity: 0.4;
   }
   40% {
     transform: scale(1.3);
@@ -491,7 +506,7 @@ onMounted(async () => {
   }
 }
 .echo-progress-text {
-  color: #8b949e;
+  color: #8a7d75;
   font-size: 11px;
   font-style: italic;
 }
@@ -502,10 +517,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8b949e;
+  color: #5c504a;
   font-size: 12px;
   text-align: center;
   padding: 20px;
+  line-height: 1.6;
 }
 
 /* ── Error bar ── */
@@ -513,9 +529,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #3d1b1b;
-  border-top: 1px solid #f85149;
-  color: #f85149;
+  background: #2a1414;
+  border-top: 1px solid #c45454;
+  color: #e07070;
   padding: 6px 12px;
   font-size: 12px;
   flex-shrink: 0;
@@ -523,7 +539,7 @@ onMounted(async () => {
 .echo-error-bar button {
   background: none;
   border: none;
-  color: #f85149;
+  color: #e07070;
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
@@ -536,16 +552,16 @@ onMounted(async () => {
   align-items: flex-end;
   gap: 6px;
   padding: 8px 12px;
-  border-top: 1px solid #21262d;
-  background: #0d1117;
+  border-top: 1px solid #2e2420;
+  background: #100e0c;
   flex-shrink: 0;
 }
 .echo-input {
   flex: 1;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: #1c1816;
+  border: 1px solid #3a2e28;
   border-radius: 8px;
-  color: #e6edf3;
+  color: #f0ebe5;
   font-size: 13px;
   font-family: inherit;
   padding: 8px 10px;
@@ -557,10 +573,10 @@ onMounted(async () => {
   transition: border-color 0.15s;
 }
 .echo-input:focus {
-  border-color: #388bfd;
+  border-color: #d97757;
 }
 .echo-input::placeholder {
-  color: #484f58;
+  color: #4a3e38;
 }
 .echo-send-btn,
 .echo-stop-btn {
@@ -576,19 +592,19 @@ onMounted(async () => {
   transition: background 0.1s;
 }
 .echo-send-btn {
-  color: #388bfd;
+  color: #d97757;
 }
 .echo-send-btn:hover:not(:disabled) {
-  background: #1f3049;
+  background: #2a1c14;
 }
 .echo-send-btn:disabled {
-  color: #30363d;
+  color: #3a2e28;
   cursor: not-allowed;
 }
 .echo-stop-btn {
-  color: #f85149;
+  color: #c45454;
 }
 .echo-stop-btn:hover {
-  background: #3d1b1b;
+  background: #2a1414;
 }
 </style>

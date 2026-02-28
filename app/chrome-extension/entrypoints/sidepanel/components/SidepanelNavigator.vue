@@ -171,7 +171,7 @@
               </div>
               <div class="navigator-item-content">
                 <span class="navigator-item-title">Echo</span>
-                <span class="navigator-item-desc">Stateful-Echo channel</span>
+                <span class="navigator-item-desc">Local AI, always listening</span>
               </div>
               <div v-if="activeTab === 'echo'" class="navigator-item-check">
                 <svg
