@@ -1,11 +1,7 @@
 <template>
   <div class="h-full w-full bg-slate-50 relative agent-theme" :data-agent-theme="currentTheme">
-    <!-- Sidepanel Navigator - only show on non-agent-chat pages -->
-    <SidepanelNavigator
-      v-if="activeTab !== 'agent-chat'"
-      :activeTab="activeTab"
-      @change="handleTabChange"
-    />
+    <!-- Sidepanel Navigator -->
+    <SidepanelNavigator :activeTab="activeTab" @change="handleTabChange" />
 
     <!-- Workflows Tab -->
     <div v-show="activeTab === 'workflows'" class="h-full">
