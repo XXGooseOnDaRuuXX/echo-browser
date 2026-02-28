@@ -58,6 +58,20 @@ export default defineBackground(() => {
   initElementMarkerListeners();
   // Web editor: toggle edit-mode overlay
   initWebEditorListeners();
+
+  // Echo context menu: "Ask Echo ⚡" opens the sidepanel on the Echo tab
+  const ECHO_MENU_ID = 'echo-ask';
+  chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create({
+      id: ECHO_MENU_ID,
+      title: 'Ask Echo ⚡',
+      contexts: ['all'],
+    });
+  });
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId !== ECHO_MENU_ID || !tab?.id) return;
+    chrome.sidePanel.open({ tabId: tab.id });
+  });
   // Quick Panel: send messages to AgentChat via background-stream bridge
   initQuickPanelAgentHandler();
   // Quick Panel: tabs search bridge for content script UI
