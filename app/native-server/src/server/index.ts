@@ -20,15 +20,34 @@ import {
 import { NativeMessagingHost } from '../native-messaging-host';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { getMcpServer } from '../mcp/mcp-server';
+import { setupTools } from '../mcp/register-tools';
 import { AgentStreamManager } from '../agent/stream-manager';
 import { AgentChatService } from '../agent/chat-service';
 import { CodexEngine } from '../agent/engines/codex';
 import { ClaudeEngine } from '../agent/engines/claude';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
+
+// ============================================================
+// Helpers
+// ============================================================
+
+/**
+ * Create a fresh MCP Server instance for a single session.
+ * Using a singleton was the root cause of "transport conflict" errors:
+ * the SDK's Server.connect() throws when called on an already-connected instance.
+ */
+function createSessionMcpServer() {
+  const server = new McpServer(
+    { name: 'ChromeMcpServer', version: '1.0.0' },
+    { capabilities: { tools: {} } },
+  );
+  setupTools(server);
+  return server;
+}
 
 // ============================================================
 // Types
@@ -181,8 +200,7 @@ export class Server {
           this.transportsMap.delete(transport.sessionId);
         });
 
-        const server = getMcpServer();
-        await server.connect(transport);
+        await createSessionMcpServer().connect(transport);
 
         reply.raw.write(':\n\n');
       } catch (error) {
@@ -235,7 +253,7 @@ export class Server {
             this.transportsMap.delete(transport.sessionId);
           }
         };
-        await getMcpServer().connect(transport);
+        await createSessionMcpServer().connect(transport);
       } else {
         reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: ERROR_MESSAGES.INVALID_MCP_REQUEST });
         return;

@@ -53,21 +53,38 @@ export const getStdioMcpServer = () => {
 };
 
 export const ensureMcpClient = async () => {
-  try {
-    if (mcpClient) {
-      const pingResult = await mcpClient.ping();
+  // Check if existing client is still alive
+  if (mcpClient) {
+    try {
+      // Bound the ping to 5 seconds so a slow/unresponsive server never blocks tool calls.
+      const pingResult = await Promise.race([
+        mcpClient.ping(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('ping timeout')), 5000),
+        ),
+      ]);
       if (pingResult) {
         return mcpClient;
       }
+    } catch {
+      // Ping failed or timed out — tear down the stale session and reconnect.
     }
+    try {
+      await mcpClient.close();
+    } catch {}
+    mcpClient = null;
+  }
 
+  try {
     const config = loadConfig();
     mcpClient = new Client({ name: 'Mcp Chrome Proxy', version: '1.0.0' }, { capabilities: {} });
     const transport = new StreamableHTTPClientTransport(new URL(config.url), {});
     await mcpClient.connect(transport);
     return mcpClient;
   } catch (error) {
-    mcpClient?.close();
+    try {
+      await mcpClient?.close();
+    } catch {}
     mcpClient = null;
     console.error('Failed to connect to MCP server:', error);
   }

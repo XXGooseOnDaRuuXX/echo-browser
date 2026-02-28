@@ -44,7 +44,7 @@ class CDPSessionManager {
       }
       // Another client (DevTools/other extension) is attached
       throw new Error(
-        `Debugger is already attached to tab ${tabId} by another client (e.g., DevTools/extension)`,
+        `CDP conflict: DevTools or another extension is attached to this tab. Close DevTools on this tab, then retry. Alternatively, use chrome_click_element and chrome_fill_or_select which do not require the debugger.`,
       );
     }
 
@@ -87,6 +87,23 @@ class CDPSessionManager {
       return await fn();
     } finally {
       await this.detach(tabId, owner);
+    }
+  }
+
+  /**
+   * Force-detach from a tab regardless of refcount. Used by chrome_reset_transport.
+   */
+  async forceDetach(tabId: number): Promise<void> {
+    const state = this.getState(tabId);
+    if (!state) return;
+    try {
+      if (state.attachedByUs) {
+        await chrome.debugger.detach({ tabId });
+      }
+    } catch {
+      // Best-effort
+    } finally {
+      this.sessions.delete(tabId);
     }
   }
 

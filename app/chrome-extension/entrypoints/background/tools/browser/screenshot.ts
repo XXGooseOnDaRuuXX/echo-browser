@@ -115,9 +115,9 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     const {
       name = 'screenshot',
       selector,
-      storeBase64 = false,
+      storeBase64 = true, // Default on — return image so the model can see it
       fullPage = false,
-      savePng = true,
+      savePng = false, // Default off — only save to disk when explicitly requested
     } = args;
 
     console.log(`Starting screenshot with options:`, args);
@@ -282,21 +282,55 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         console.warn('Failed to set screenshot context:', e);
       }
       if (storeBase64 === true) {
+        const COMPRESS_SCALE = 0.7;
         // Compress image for base64 output to reduce size
         const compressed = await compressImage(finalImageDataUrl, {
-          scale: 0.7, // Reduce dimensions by 30%
+          scale: COMPRESS_SCALE, // Reduce dimensions by 30%
           quality: 0.8, // 80% quality for good balance
           format: 'image/jpeg', // JPEG for better compression
         });
 
-        // Include base64 data in response (without prefix)
+        // The AI receives a compressed image — update context so coordinate scaling
+        // maps from compressed-image space (physical px * 0.7) to viewport CSS pixels.
+        // Without this, clicks are systematically off because the context dimensions
+        // reflect the uncompressed image but the AI sees the 70%-scale one.
+        try {
+          if (
+            tab.id !== undefined &&
+            typeof finalImageWidthCss === 'number' &&
+            typeof finalImageHeightCss === 'number'
+          ) {
+            const dpr = pageDetails?.devicePixelRatio ?? 1;
+            screenshotContextManager.setContext(tab.id, {
+              screenshotWidth: Math.round(finalImageWidthCss * dpr * COMPRESS_SCALE),
+              screenshotHeight: Math.round(finalImageHeightCss * dpr * COMPRESS_SCALE),
+              viewportWidth: pageDetails?.viewportWidth ?? finalImageWidthCss,
+              viewportHeight: pageDetails?.viewportHeight ?? finalImageHeightCss,
+              devicePixelRatio: dpr,
+              hostname: tab.url
+                ? (() => {
+                    try {
+                      return new URL(tab.url!).hostname;
+                    } catch {
+                      return '';
+                    }
+                  })()
+                : '',
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to update screenshot context for storeBase64:', e);
+        }
+
+        // Return as MCP image content so the model can actually see it
         const base64Data = compressed.dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
         results.base64 = base64Data;
         return {
           content: [
             {
-              type: 'text',
-              text: JSON.stringify({ base64Data, mimeType: compressed.mimeType }),
+              type: 'image',
+              data: base64Data,
+              mimeType: compressed.mimeType,
             },
           ],
           isError: false,

@@ -28,3 +28,5 @@ export {
   performanceAnalyzeInsightTool,
 } from './performance';
 export { gifRecorderTool } from './gif-recorder';
+export { purgeScreenshotsTool } from './purge-screenshots';
+export { resetTransportTool } from './reset-transport';

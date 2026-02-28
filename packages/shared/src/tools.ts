@@ -39,6 +39,8 @@ export const TOOL_NAMES = {
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
     GIF_RECORDER: 'chrome_gif_recorder',
+    PURGE_SCREENSHOTS: 'chrome_purge_screenshots',
+    RESET_TRANSPORT: 'chrome_reset_transport',
   },
   RECORD_REPLAY: {
     FLOW_RUN: 'record_replay_flow_run',
@@ -160,7 +162,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
-      'Get an accessibility tree representation of visible elements on the page. Only returns elements that are visible in the viewport. Optionally filter for only interactive elements.\nTip: If the returned elements do not include the specific element you need, use the computer tool\'s screenshot (action="screenshot") to capture the element\'s on-screen coordinates, then operate by coordinates.',
+      'Get an accessibility tree of all rendered elements on the page — including elements that are off-screen or below the fold. Use filter="interactive" to see only buttons, inputs, and links. After getting refs, use chrome_click_element or chrome_fill_or_select with the ref directly — they auto-scroll to the element so you never need to scroll manually first. After clicking something that opens a dropdown, dialog, or modal, call chrome_read_page again to see the newly-appeared options.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -194,7 +196,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.COMPUTER,
     description:
-      "Use a mouse and keyboard to interact with a web browser, and take screenshots.\n* Whenever you intend to click on an element like an icon, you should consult a read_page to determine the ref of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try screenshot and then adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
+      "Perform browser actions using CDP (Chrome DevTools Protocol). IMPORTANT: This tool requires the debugger — it will fail if DevTools is already open on the tab. For simple clicks and form fills, PREFER chrome_click_element and chrome_fill_or_select instead (they don't use CDP and work even with DevTools open). Reserve chrome_computer for: screenshots, drag & drop, keyboard shortcuts, and complex gestures.\n* For clicks and scrolling: use chrome_click_element with a ref — it auto-scrolls to the element.\n* For text/value input: use chrome_fill_or_select with a ref.\n* Only fall back to coordinates if ref-based clicks fail after retrying.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -471,7 +473,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         storeBase64: {
           type: 'boolean',
           description:
-            'return screenshot in base64 format (default: false) if you want to see the page, recommend set this to be true',
+            'Return the screenshot as a viewable image (default: true). Set false only if you explicitly do not need to see the screenshot.',
         },
         fullPage: {
           type: 'boolean',
@@ -480,7 +482,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         savePng: {
           type: 'boolean',
           description:
-            'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
+            'Save screenshot as PNG file to Downloads (default: false). Only set true when you explicitly want a file saved. To view the page, use storeBase64: true instead.',
         },
       },
       required: [],
@@ -866,7 +868,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.CLICK,
     description:
-      'Click on an element in a web page. Supports multiple targeting methods: CSS selector, XPath, element ref (from chrome_read_page), or viewport coordinates. More focused than chrome_computer for simple click operations.',
+      'PREFERRED tool for clicking elements. Automatically scrolls to the element before clicking — no manual scrolling needed. After clicking a dropdown or button that opens a floating menu, call chrome_read_page again to see the new options. Supports ref (from chrome_read_page), CSS selector, XPath, or viewport coordinates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -938,7 +940,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.FILL,
     description:
-      'Fill or select a form element on a web page. Supports input, textarea, select, checkbox, and radio elements. Use CSS selector, XPath, or element ref to target the element.',
+      'PREFERRED tool for filling form fields. Automatically scrolls to the element. Works for text inputs, textarea, select, checkbox, and radio elements. Does NOT use CDP — works even if DevTools is open. Use a ref from chrome_read_page, CSS selector, or XPath. For native <select> elements, pass the option value or text. For custom dropdown UIs (not native select), use chrome_click_element on the dropdown button, then chrome_read_page to see options, then chrome_click_element on the option.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1395,6 +1397,41 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PURGE_SCREENSHOTS,
+    description:
+      'Delete screenshot PNG files that were saved to the browser Downloads folder by chrome_screenshot. Searches downloads history for matching files, removes them from disk, and erases the download records. Useful for cleaning up after a session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        nameContains: {
+          type: 'string',
+          description:
+            'Only delete screenshots whose filename contains this string (default: matches all screenshot files)',
+        },
+        dryRun: {
+          type: 'boolean',
+          description:
+            'When true, list files that would be deleted without actually deleting them (default: false)',
+        },
+        maxAgeDays: {
+          type: 'number',
+          description: 'Only delete screenshots older than this many days (default: delete all)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.RESET_TRANSPORT,
+    description:
+      'Reset the Chrome MCP transport layer. Call this when you encounter transport conflicts, stale sessions, or connection errors. Clears CDP sessions, screenshot context, and any stuck state — allowing the next tool call to start fresh without requiring a manual extension reload.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
   },
 ];

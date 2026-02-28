@@ -23,6 +23,19 @@
           </svg>
         </button>
         <button
+          v-if="connectionState === 'connected'"
+          class="echo-clear-btn echo-workflows-btn"
+          :class="{ 'echo-workflows-btn-active': showWorkflows }"
+          title="Workflows"
+          @click="showWorkflows = !showWorkflows"
+        >
+          <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+            <path
+              d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+            />
+          </svg>
+        </button>
+        <button
           v-if="messages.length > 0"
           class="echo-clear-btn"
           title="Clear conversation"
@@ -56,32 +69,54 @@
       <p v-if="errorMessage" class="echo-error-text">{{ errorMessage }}</p>
     </div>
 
-    <!-- Message timeline -->
-    <div v-else ref="timelineRef" class="echo-timeline">
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="echo-msg"
-        :class="msg.role === 'user' ? 'echo-msg-user' : 'echo-msg-assistant'"
+    <!-- Thread indicator banner (ADR-046) -->
+    <div v-if="connectionState === 'connected' && threadLabel" class="echo-thread-banner">
+      <span class="echo-thread-icon">⤷</span>
+      <span class="echo-thread-label">{{ threadLabel }}</span>
+      <button class="echo-thread-back" title="Return to main session" @click="sendBack"
+        >← back</button
       >
-        <div class="echo-msg-bubble">
-          <span class="echo-msg-text">{{ msg.text }}</span>
-          <span v-if="msg.streaming" class="echo-cursor" />
+    </div>
+
+    <!-- Message timeline -->
+    <div v-if="connectionState === 'connected'" class="echo-timeline-zone">
+      <div ref="timelineRef" class="echo-timeline">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="echo-msg"
+          :class="msg.role === 'user' ? 'echo-msg-user' : 'echo-msg-assistant'"
+        >
+          <div class="echo-msg-bubble">
+            <template v-if="msg.role === 'assistant'">
+              <!-- markstream-vue handles partial tokens gracefully during streaming -->
+              <div class="echo-msg-md">
+                <MarkdownRender :content="msg.text ?? ''" :max-live-nodes="0" />
+              </div>
+            </template>
+            <span v-else class="echo-msg-text">{{ msg.text }}</span>
+            <span v-if="msg.streaming" class="echo-cursor" />
+          </div>
+        </div>
+
+        <!-- Thinking / progress indicator -->
+        <div v-if="isThinking && !lastMessageStreaming" class="echo-thinking">
+          <span class="echo-thinking-dot" />
+          <span class="echo-thinking-dot" />
+          <span class="echo-thinking-dot" />
+          <span v-if="progressText" class="echo-progress-text">{{ progressText }}</span>
+        </div>
+
+        <!-- Empty state -->
+        <div v-if="messages.length === 0" class="echo-empty">
+          <p>Echo is listening. Ask anything — she sees this page.</p>
         </div>
       </div>
-
-      <!-- Thinking / progress indicator -->
-      <div v-if="isThinking && !lastMessageStreaming" class="echo-thinking">
-        <span class="echo-thinking-dot" />
-        <span class="echo-thinking-dot" />
-        <span class="echo-thinking-dot" />
-        <span v-if="progressText" class="echo-progress-text">{{ progressText }}</span>
-      </div>
-
-      <!-- Empty state -->
-      <div v-if="messages.length === 0" class="echo-empty">
-        <p>Echo is listening. Ask anything — she sees this page.</p>
-      </div>
+      <WorkflowsPanel
+        v-if="showWorkflows"
+        :send-message="sendMessage"
+        @close="showWorkflows = false"
+      />
     </div>
 
     <!-- Error bar -->
@@ -127,6 +162,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { useEchoChat } from '../composables/useEchoChat';
+import MarkdownRender from 'markstream-vue';
+import 'markstream-vue/index.css';
+import WorkflowsPanel from './WorkflowsPanel.vue';
 
 const {
   messages,
@@ -134,6 +172,7 @@ const {
   isThinking,
   errorMessage,
   progressText,
+  threadLabel,
   daemonUrl,
   connect,
   reconnect,
@@ -145,6 +184,7 @@ const {
 } = useEchoChat();
 
 const inputText = ref('');
+const showWorkflows = ref(false);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 const timelineRef = ref<HTMLDivElement | null>(null);
 const urlInput = ref('');
@@ -220,6 +260,12 @@ function autoResize(): void {
 function resetTextareaHeight(): void {
   const el = inputRef.value;
   if (el) el.style.height = 'auto';
+}
+
+// ── Thread ────────────────────────────────────────────────────────────────────
+
+function sendBack(): void {
+  sendMessage('/back');
 }
 
 // ── URL input ─────────────────────────────────────────────────────────────────
@@ -404,14 +450,29 @@ onMounted(async () => {
   margin: 4px 0 0;
 }
 
+/* ── Timeline zone (contains timeline + workflow overlay) ── */
+.echo-timeline-zone {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Workflows button ── */
+.echo-workflows-btn-active {
+  color: #d97757;
+  background: #2a1c14;
+}
+
 /* ── Timeline ── */
 .echo-timeline {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 12px 8px;
+  padding: 14px 12px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   scrollbar-width: thin;
   scrollbar-color: #3a2e28 transparent;
 }
@@ -437,7 +498,6 @@ onMounted(async () => {
   padding: 8px 12px;
   border-radius: 12px;
   line-height: 1.5;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 .echo-msg-user .echo-msg-bubble {
@@ -451,9 +511,140 @@ onMounted(async () => {
   border: 1px solid #2e2420;
   border-bottom-left-radius: 4px;
 }
+/* ── Thread banner (ADR-046) ── */
+.echo-thread-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: #1a1210;
+  border-bottom: 1px solid #3a2e28;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.echo-thread-icon {
+  color: #d97757;
+  font-size: 13px;
+  line-height: 1;
+}
+.echo-thread-label {
+  color: #d97757;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.echo-thread-back {
+  background: none;
+  border: 1px solid #3a2e28;
+  border-radius: 4px;
+  color: #8a7d75;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 7px;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+}
+.echo-thread-back:hover {
+  color: #d97757;
+  border-color: #d97757;
+}
+
 .echo-msg-text {
   display: block;
+  white-space: pre-wrap;
 }
+
+/* Streaming: stable plain text — no markdown jitter while tokens arrive */
+.echo-msg-stream {
+  display: block;
+  white-space: pre-wrap;
+  color: #c8bdb7;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Markdown styles for assistant messages ── */
+.echo-msg-md {
+  font-size: 13px;
+}
+.echo-msg-md :deep(p) {
+  margin: 0.45em 0;
+}
+.echo-msg-md :deep(p:first-child) {
+  margin-top: 0;
+}
+.echo-msg-md :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.echo-msg-md :deep(ul),
+.echo-msg-md :deep(ol) {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+}
+.echo-msg-md :deep(li) {
+  margin: 0.2em 0;
+}
+.echo-msg-md :deep(h1),
+.echo-msg-md :deep(h2),
+.echo-msg-md :deep(h3) {
+  margin: 0.7em 0 0.3em;
+  font-weight: 600;
+  color: #f0ebe5;
+}
+.echo-msg-md :deep(h1:first-child),
+.echo-msg-md :deep(h2:first-child),
+.echo-msg-md :deep(h3:first-child) {
+  margin-top: 0;
+}
+.echo-msg-md :deep(code) {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  background: #2a1f1a;
+  color: #e8a87c;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+.echo-msg-md :deep(pre) {
+  background: #151210;
+  border: 1px solid #3a2e28;
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.echo-msg-md :deep(pre code) {
+  background: none;
+  padding: 0;
+  color: #d4c8be;
+  font-size: 0.82em;
+}
+.echo-msg-md :deep(strong) {
+  font-weight: 600;
+  color: #f5e8df;
+}
+.echo-msg-md :deep(em) {
+  font-style: italic;
+  color: #c8b8ae;
+}
+.echo-msg-md :deep(blockquote) {
+  border-left: 3px solid #d97757;
+  padding-left: 0.85em;
+  margin: 0.5em 0;
+  color: #8a7d75;
+}
+.echo-msg-md :deep(a) {
+  color: #d97757;
+  text-decoration: underline;
+}
+.echo-msg-md :deep(hr) {
+  border: none;
+  border-top: 1px solid #2e2420;
+  margin: 0.75em 0;
+}
+
 .echo-cursor {
   display: inline-block;
   width: 2px;

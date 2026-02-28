@@ -32,9 +32,20 @@ interface DaemonStreamEvent {
 }
 
 interface DaemonMessage {
-  type: 'connected' | 'thinking' | 'stream' | 'text' | 'progress' | 'done' | 'cancelling' | 'error';
+  type:
+    | 'connected'
+    | 'thinking'
+    | 'stream'
+    | 'text'
+    | 'progress'
+    | 'done'
+    | 'cancelling'
+    | 'error'
+    | 'thread_opened'
+    | 'thread_closed';
   text?: string;
   event?: DaemonStreamEvent;
+  threadLabel?: string;
 }
 
 const STORAGE_KEY_DAEMON_URL = 'echo-daemon-url';
@@ -49,6 +60,8 @@ export function useEchoChat() {
   const errorMessage = ref<string | null>(null);
   const daemonUrl = ref(DEFAULT_DAEMON_URL);
   const progressText = ref<string | null>(null);
+  /** Non-null when inside a /thread session — holds the thread label. */
+  const threadLabel = ref<string | null>(null);
 
   let ws: WebSocket | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -214,6 +227,14 @@ export function useEchoChat() {
         progressText.value = null;
         break;
 
+      case 'thread_opened':
+        threadLabel.value = msg.threadLabel ?? null;
+        break;
+
+      case 'thread_closed':
+        threadLabel.value = null;
+        break;
+
       case 'error': {
         isThinking.value = false;
         progressText.value = null;
@@ -302,6 +323,7 @@ export function useEchoChat() {
     isThinking,
     errorMessage,
     progressText,
+    threadLabel,
     daemonUrl,
     // Methods
     connect,

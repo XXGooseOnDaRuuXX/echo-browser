@@ -260,6 +260,20 @@ class ComputerTool extends BaseBrowserToolExecutor {
             text: params.text,
             ref: params.ref,
           });
+
+          // Show visual cursor overlay in the page at action coordinates
+          const CURSOR_ACTIONS = new Set([
+            'left_click',
+            'right_click',
+            'double_click',
+            'triple_click',
+            'left_click_drag',
+            'hover',
+            'scroll',
+          ]);
+          if (CURSOR_ACTIONS.has(params.action) && endCoords) {
+            await this.showCursorOverlay(tab.id, endCoords.x, endCoords.y, params.action);
+          }
         }
       }
 
@@ -886,8 +900,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
         }
         const direction = params.scrollDirection || 'down';
         const amount = Math.max(1, Math.min(params.scrollAmount || 3, 10));
-        // Convert to deltas (~100px per tick)
-        const unit = 100;
+        // ~120px per notch (typical trackpad/wheel unit)
+        const unit = 120;
         let deltaX = 0,
           deltaY = 0;
         if (direction === 'up') deltaY = -amount * unit;
@@ -895,15 +909,34 @@ class ComputerTool extends BaseBrowserToolExecutor {
         if (direction === 'left') deltaX = -amount * unit;
         if (direction === 'right') deltaX = amount * unit;
         try {
-          await CDPHelper.attach(tab.id);
-          await CDPHelper.dispatchMouseEvent(tab.id, {
-            type: 'mouseWheel',
-            x: coord.x,
-            y: coord.y,
-            deltaX,
-            deltaY,
+          // Use JS scrollBy — no CDP, works even when DevTools is open
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (cx: number, cy: number, dx: number, dy: number) => {
+              // Walk up from the element at the scroll point to find the nearest scrollable container
+              let node = document.elementFromPoint(cx, cy) as Element | null;
+              while (node && node !== document.documentElement) {
+                const { overflowY, overflowX } = window.getComputedStyle(node);
+                const scrollableY =
+                  dy !== 0 &&
+                  (overflowY === 'auto' || overflowY === 'scroll') &&
+                  node.scrollHeight > node.clientHeight;
+                const scrollableX =
+                  dx !== 0 &&
+                  (overflowX === 'auto' || overflowX === 'scroll') &&
+                  node.scrollWidth > node.clientWidth;
+                if (scrollableY || scrollableX) {
+                  (node as HTMLElement).scrollBy(dx, dy);
+                  return;
+                }
+                node = node.parentElement;
+              }
+              // Fall back to window scroll
+              window.scrollBy(dx, dy);
+            },
+            args: [coord.x, coord.y, deltaX, deltaY],
+            world: 'MAIN',
           });
-          await CDPHelper.detach(tab.id);
           return {
             content: [
               {
@@ -920,7 +953,6 @@ class ComputerTool extends BaseBrowserToolExecutor {
             isError: false,
           };
         } catch (e) {
-          await CDPHelper.detach(tab.id);
           return createErrorResponse(
             `Scroll failed: ${e instanceof Error ? e.message : String(e)}`,
           );
@@ -1420,6 +1452,37 @@ class ComputerTool extends BaseBrowserToolExecutor {
     } catch (error) {
       // Log but don't fail the main action
       console.warn('[ComputerTool] Auto-capture failed:', error);
+    }
+  }
+
+  /**
+   * Injects cursor-overlay.js into the page and displays a visual dot
+   * at the given viewport-space coordinates. Fire-and-forget: errors are swallowed.
+   */
+  private async showCursorOverlay(
+    tabId: number,
+    x: number,
+    y: number,
+    action: string,
+  ): Promise<void> {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId, allFrames: false },
+        files: ['inject-scripts/cursor-overlay.js'],
+        world: 'ISOLATED',
+      });
+    } catch {
+      // Script already injected or tab doesn't support scripting — ignore
+    }
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'mcp_show_cursor',
+        x: Math.round(x),
+        y: Math.round(y),
+        type: action,
+      });
+    } catch {
+      // Tab may not be ready or may be a restricted page — ignore
     }
   }
 }

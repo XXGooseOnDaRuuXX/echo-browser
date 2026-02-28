@@ -48,7 +48,7 @@ class ReadPageTool extends BaseBrowserToolExecutor {
     try {
       // Tip text returned to callers to guide next action
       const standardTips =
-        "If the specific element you need is missing from the returned data, use the 'screenshot' tool to capture the current viewport and confirm the element's on-screen coordinates. Also note: 'markedElements' are user-marked elements and have the highest priority when choosing targets.";
+        "All rendered elements are included regardless of scroll position — off-screen elements appear in the tree too. To interact with any ref, use chrome_click_element or chrome_fill_or_select directly with the ref: they automatically scroll to the element before acting (no manual scrolling needed). After clicking a button or link that opens a dropdown, popup, or dialog, call chrome_read_page again to discover the newly-appeared options. 'markedElements' are user-marked elements and have the highest priority when choosing targets.";
 
       const explicit = await this.tryGetTab(args?.tabId);
       const tab = explicit || (await this.getActiveTabOrThrowInWindow(args?.windowId));
