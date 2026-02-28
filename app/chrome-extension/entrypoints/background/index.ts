@@ -59,9 +59,11 @@ export default defineBackground(() => {
   // Web editor: toggle edit-mode overlay
   initWebEditorListeners();
 
-  // Echo context menu: "Ask Echo ⚡" opens the sidepanel on the Echo tab
+  // Echo context menu: "Ask Echo ⚡" opens the sidepanel.
+  // Remove+recreate on every startup so label changes take effect without reinstalling.
   const ECHO_MENU_ID = 'echo-ask';
-  chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.remove(ECHO_MENU_ID, () => {
+    void chrome.runtime.lastError; // suppress "not found" error on first run
     chrome.contextMenus.create({
       id: ECHO_MENU_ID,
       title: 'Ask Echo ⚡',
