@@ -4,7 +4,7 @@
     <div v-show="currentView === 'home'" class="home-view">
       <div class="header">
         <div class="header-content">
-          <h1 class="header-title">Chrome MCP Server</h1>
+          <h1 class="header-title">ECHO ⚡ BROWSER</h1>
         </div>
       </div>
       <div class="content">
@@ -70,33 +70,33 @@
 
         <!-- 快捷工具卡片 -->
         <div class="section">
-          <h2 class="section-title">快捷工具</h2>
+          <h2 class="section-title">Quick Tools</h2>
           <div class="rr-icon-buttons">
             <button
               class="rr-icon-btn rr-icon-btn-record rr-icon-btn-coming-soon has-tooltip"
               @click="startRecording"
-              data-tooltip="录制功能开发中"
+              data-tooltip="Coming soon"
             >
               <RecordIcon :recording="false" />
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-stop rr-icon-btn-coming-soon has-tooltip"
               @click="stopRecording"
-              data-tooltip="录制功能开发中"
+              data-tooltip="Coming soon"
             >
               <StopIcon />
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-edit has-tooltip"
               @click="toggleWebEditor"
-              data-tooltip="开启页面编辑模式"
+              data-tooltip="Toggle page edit mode"
             >
               <EditIcon />
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-marker has-tooltip"
               @click="toggleElementMarker"
-              data-tooltip="开启元素标注"
+              data-tooltip="Toggle element markers"
             >
               <MarkerIcon />
             </button>
@@ -105,7 +105,7 @@
 
         <!-- 管理入口卡片 -->
         <div class="section">
-          <h2 class="section-title">管理入口</h2>
+          <h2 class="section-title">Panel</h2>
           <div class="entry-card">
             <button class="entry-item" @click="openAgentSidepanel">
               <div class="entry-icon agent">
@@ -125,8 +125,8 @@
                 </svg>
               </div>
               <div class="entry-content">
-                <span class="entry-title">智能助手</span>
-                <span class="entry-desc">AI Agent 对话与任务</span>
+                <span class="entry-title">AI Assistant</span>
+                <span class="entry-desc">Chat & tasks</span>
               </div>
               <svg
                 class="entry-arrow"
@@ -146,10 +146,10 @@
               </div>
               <div class="entry-content">
                 <span class="entry-title">
-                  工作流管理
+                  Workflows
                   <span class="coming-soon-badge">Coming Soon</span>
                 </span>
-                <span class="entry-desc">录制与回放自动化流程</span>
+                <span class="entry-desc">Record & replay automation</span>
               </div>
               <svg
                 class="entry-arrow"
@@ -181,8 +181,8 @@
                 </svg>
               </div>
               <div class="entry-content">
-                <span class="entry-title">元素标注管理</span>
-                <span class="entry-desc">管理页面元素标注</span>
+                <span class="entry-title">Element Markers</span>
+                <span class="entry-desc">Manage page element markers</span>
               </div>
               <svg
                 class="entry-arrow"
@@ -214,8 +214,8 @@
                 </svg>
               </div>
               <div class="entry-content">
-                <span class="entry-title">本地模型</span>
-                <span class="entry-desc">语义引擎与模型管理</span>
+                <span class="entry-title">Local Model</span>
+                <span class="entry-desc">Semantic engine & model settings</span>
               </div>
               <svg
                 class="entry-arrow"
@@ -258,7 +258,7 @@
             Docs
           </button>
         </div>
-        <p class="footer-text">chrome mcp server for ai</p>
+        <p class="footer-text">ECHO ⚡ BROWSER</p>
       </div>
     </div>
 
@@ -325,7 +325,7 @@
           <circle cx="12" cy="12" r="10" />
           <path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        <span>{{ comingSoonToast.feature }} 功能开发中，敬请期待</span>
+        <span>{{ comingSoonToast.feature }} is coming soon, stay tuned</span>
       </div>
     </Transition>
   </div>
@@ -433,7 +433,7 @@ function isFlowBoundToCurrent(flow: any) {
 // 运行记录与覆盖项在侧边栏页面查看
 const startRecording = async () => {
   // TODO: 录制回放功能开发中，暂时拦截
-  showComingSoonToast('录制回放');
+  showComingSoonToast('Recording & Replay');
   return;
   // if (rrRecording.value) return;
   // try {
@@ -450,7 +450,7 @@ const startRecording = async () => {
 
 const stopRecording = async () => {
   // TODO: 录制回放功能开发中，暂时拦截
-  showComingSoonToast('录制回放');
+  showComingSoonToast('Recording & Replay');
   return;
   // if (!rrRecording.value) return;
   // try {
@@ -635,7 +635,7 @@ async function openSidepanelAndClose(tab: string) {
 // Open sidepanel from popup for workflow management
 function openWorkflowSidepanel() {
   // TODO: 工作流功能开发中，暂时拦截
-  showComingSoonToast('工作流管理');
+  showComingSoonToast('Workflows');
   // openSidepanelAndClose('workflows');
 }
 
