@@ -38,7 +38,7 @@ interface DaemonMessage {
 }
 
 const STORAGE_KEY_DAEMON_URL = 'echo-daemon-url';
-const DEFAULT_DAEMON_URL = 'ws://localhost:3847';
+const DEFAULT_DAEMON_URL = 'ws://localhost:3849';
 
 // ─── Composable ───────────────────────────────────────────────────────────────
 
