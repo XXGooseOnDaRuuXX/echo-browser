@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full bg-slate-50 relative agent-theme" :data-agent-theme="currentTheme">
-    <!-- Sidepanel Navigator - only show on workflows/element-markers pages -->
+    <!-- Sidepanel Navigator - only show on non-agent-chat pages -->
     <SidepanelNavigator
       v-if="activeTab !== 'agent-chat'"
       :activeTab="activeTab"
@@ -32,6 +32,11 @@
     <!-- Agent Chat Tab -->
     <div v-show="activeTab === 'agent-chat'" class="h-full">
       <AgentChat />
+    </div>
+
+    <!-- Echo Tab -->
+    <div v-show="activeTab === 'echo'" class="h-full">
+      <EchoChat />
     </div>
 
     <!-- Element Markers Tab -->
@@ -291,6 +296,7 @@ import { computed, onMounted, ref, onUnmounted, watch } from 'vue';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import type { ElementMarker, UpsertMarkerRequest } from '@/common/element-marker-types';
 import AgentChat from './components/AgentChat.vue';
+import EchoChat from './components/EchoChat.vue';
 import SidepanelNavigator from './components/SidepanelNavigator.vue';
 import { WorkflowsView } from './components/workflows';
 import { useAgentTheme } from './composables/useAgentTheme';
@@ -300,10 +306,10 @@ import { useWorkflowsV3, type FlowLite } from './composables/useWorkflowsV3';
 const { theme: currentTheme, initTheme } = useAgentTheme();
 
 // Tab state - default to AgentChat
-const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat'>('agent-chat');
+const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat' | 'echo'>('agent-chat');
 
 // Handle tab change and update URL for deep linking
-function handleTabChange(tab: 'workflows' | 'element-markers' | 'agent-chat') {
+function handleTabChange(tab: 'workflows' | 'element-markers' | 'agent-chat' | 'echo') {
   activeTab.value = tab;
   // Update URL params for deep link
   const url = new URL(window.location.href);
@@ -741,6 +747,8 @@ onMounted(async () => {
     activeTab.value = 'agent-chat';
   } else if (tabParam === 'workflows') {
     activeTab.value = 'workflows';
+  } else if (tabParam === 'echo') {
+    activeTab.value = 'echo';
   }
 
   // V3 workflows data is auto-refreshed by useWorkflowsV3 composable

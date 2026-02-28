@@ -161,6 +161,31 @@
                 </svg>
               </div>
             </button>
+            <button
+              class="navigator-item"
+              :class="{ 'navigator-item-active': activeTab === 'echo' }"
+              @click="selectTab('echo')"
+            >
+              <div class="navigator-item-icon">
+                <span style="font-size: 18px; line-height: 1">⚡</span>
+              </div>
+              <div class="navigator-item-content">
+                <span class="navigator-item-title">Echo</span>
+                <span class="navigator-item-desc">Stateful-Echo channel</span>
+              </div>
+              <div v-if="activeTab === 'echo'" class="navigator-item-check">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -172,7 +197,7 @@
 import { ref, computed } from 'vue';
 import { useFloatingDrag } from '../composables/useFloatingDrag';
 
-type TabType = 'workflows' | 'element-markers' | 'agent-chat';
+type TabType = 'workflows' | 'element-markers' | 'agent-chat' | 'echo';
 
 const BUTTON_SIZE = 36;
 const CLAMP_MARGIN = 12;
